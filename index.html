@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>SMOS vs ISAS vs WOA2013</title>
+
+    <link rel="stylesheet" href="/catds/js/jquery-ui-1.11.4/jquery-ui.min.css" />
+    <link rel="stylesheet" href="/catds/js/theme.css" />
+    <script src="/catds/js/jquery-2.1.4.min.js"></script>
+    <script src="/catds/js/jquery-ui-1.11.4/jquery-ui.min.js"></script>
+    <style>
+      .toggler {
+        width: auto;
+        height: auto;
+      }
+      #button {
+        padding: .5em 1em;
+        text-decoration: none;
+      }
+      #effect {
+        position: relative;
+        width: auto;
+        height: auto;
+        padding: 0.4em;
+      }
+      #effect h3 {
+        margin: 0;
+        padding: 0.4em;
+        text-align: center;
+      }
+    </style>
+    <script>
+        function change() {
+          var Map = $( "#map" ).val();
+          var Orbit = $( "#orbit" ).val();
+          var Dat = $( "#month" ).val();
+          var Year = Dat.substr(0,4);
+          var Month = Dat.substr(5,2);
+
+          if (Map == "SMOS_CATDS")
+          {
+            File = Map + "_" + Orbit + "_"+ Year+Month+ ".png";
+            Title = "SMOS CATDS_CPDC [" + Orbit + "," + Dat + "]";
+            $( "#orbit" ).attr('disabled', false);
+            $( "#month" ).attr('disabled', false);
+          }
+          else if (Map == "ISAS")
+          {
+            File = Map + "_" + Year + Month + ".png";
+            Title = "ISAS [" + Dat + "]"; 
+            $( "#orbit" ).attr('disabled', true);
+            $( "#month" ).attr('disabled', false);
+          }
+          else if (Map == "WOA2013")
+          {
+            File = Map + "_"+ Month+".png";
+            Title = "World Ocean Atlas 2013 [" + Month + "]"; 
+            $( "#orbit" ).attr('disabled', true);
+            $( "#month" ).attr('disabled', false);
+          }
+          else if (Map == "N_SMOS_CATDS")
+          {
+            File = Map + "_" + Orbit + "_"+ Year+Month+ ".png";
+            Title = "N SMOS CATDS_CPDC [" + Orbit + "," + Dat + "]";
+            $( "#orbit" ).attr('disabled', false);
+            $( "#month" ).attr('disabled', false);
+          }
+	  else if (Map == "ERR_SMOS_CATDS")
+          {
+            var Squareroot = '\u221a';
+            File = Map + "_" + Orbit + "_" + Year + Month + ".png";
+            Title = "STD/" + Squareroot + "(N) SMOS CATDS_CPDC [" + Orbit + "," + Dat + "]"; 
+            $( "#orbit" ).attr('disabled', false);
+            $( "#month" ).attr('disabled', false);
+          }
+	  else if (Map == "STD_SMOS_CATDS")
+          {
+            File = Map + "_" + Orbit + "_" + Year + Month + ".png";
+            Title = "STD SMOS CATDS_CPDC [" + Orbit + "," + Dat + "]"; 
+            $( "#orbit" ).attr('disabled', false);
+            $( "#month" ).attr('disabled', false);
+          }
+          else if (Map == "SMOS_CATDS-ISAS")
+          {
+            File = "SMOS_CATDS" + "_" + Orbit + "_" + Year + Month;
+            File = File + "-ISAS_" + Year + Month + ".png";
+            Title = "SMOS CATDS_CPDC [" + Orbit + "," + Dat + "] - ISAS [" + Dat + "]"; 
+            $( "#orbit" ).attr('disabled', false);
+            $( "#month" ).attr('disabled', false);
+          }
+          else if (Map == "SMOS_CATDS-WOA2013")
+          {
+            File = "SMOS_CATDS" + "_" + Orbit + "_" + Year + Month;
+            File = File + "-WOA2013_" + Month + ".png";
+            Title = "SMOS CATDS_CPDC [" + Orbit + "," + Dat + "] - World Ocean Atlas 2013 [" + Month + "]"; 
+            $( "#orbit" ).attr('disabled', false);
+            $( "#month" ).attr('disabled', false);
+          }
+
+          $('#viewimg').attr("src","data/" + File);
+          $('#effect h3').text(Title);
+        };
+        function changeMap() {
+          change();
+          return false;
+        };
+    </script>
+  </head>
+  <body onload="return changeMap(this)">
+    Map :
+    <select name="map" id="map" onChange="return changeMap(this)" onKeyup="return changeMap(this)">
+      <option value="SMOS_CATDS" selected>SMOS CATDS_CPDC</option>
+      <option value="ISAS">ISAS (Argo Interpolated)</option>
+      <option value="WOA2013">World Ocean Atlas 2013</option>
+      <option value="N_SMOS_CATDS">N SMOS CATDS_CPDC</option>
+      <option value="ERR_SMOS_CATDS">STD/SQRT(N) SMOS CATDS_CPDC</option>
+      <option value="STD_SMOS_CATDS">STD SMOS CATDS_CPDC</option>
+      <option value="SMOS_CATDS-ISAS">SMOS CATDS_CPDC - ISAS</option>
+      <option value="SMOS_CATDS-WOA2013">SMOS CATDS_CPDC - World Ocean Atlas 2013</option>
+    </select>
+    Orbit : 
+    <select name="orbit" id="orbit" onChange="return changeMap(this)" onKeyup="return changeMap(this)">
+      <option value="A" selected>A</option>
+      <option value="D">D</option>
+      <option value="AD" selected>A+D</option>
+    </select>
+    Date :
+    <select name="month" id="month" onChange="return changeMap(this)" onKeyup="return changeMap(this)">
+      <optgroup label="2015">
+      <option value="2015-05">2015-05</option>
+      <option value="2015-06">2015-06</option>
+      <option value="2015-07">2015-07</option>
+      <option value="2015-08">2015-08</option>
+      <option value="2015-09">2015-09</option>
+      <option value="2015-10">2015-10</option>
+      <option value="2015-11">2015-11</option>
+      <option value="2015-12">2015-12</option>
+      </optgroup>
+      <optgroup label="2016">
+      <option value="2016-01">2016-01</option>
+      <option value="2016-02">2016-02</option>
+      <option value="2016-03">2016-03</option>
+      <option value="2016-04">2016-04</option>
+      <option value="2016-05">2016-05</option>
+      <option value="2016-06">2016-06</option>
+      <option value="2016-07">2016-07</option>
+      <option value="2016-08" selected>2016-08</option>
+      </optgroup>
+    </select>
+    <div class="toggler">
+      <div id="effect" class="ui-widget-content ui-corner-all">
+        <h3 class="ui-widget-header ui-corner-all">SMOSAD_201608</h3>
+        <IMG SRC="SMOS_CATDS_AD_201608.png" width="100%" id="viewimg" alt="Not found !"/>
+      </div>
+    </div>
+  </body>
+</html>
