@@ -6,7 +6,9 @@
     carte_comp.py
     Generates CATDS, ISAS, WOA maps and the comparisons between them.
 
-    TODO: parameterize hard-coded directories
+    2016-10-16 LM Initial
+
+    2016-11-15 LM WOA and CATDS directories as parameters
 
 '''
 
@@ -18,15 +20,15 @@ import datetime
 import numpy as np
 import scipy
 import scipy.interpolate
+import netCDF4
+#import ncdump
+import logging
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 from mpl_toolkits.basemap import Basemap
-import netCDF4
-import logging
 from optparse import OptionParser
-import ncdump
 
 # configure plot
 matplotlib.rc('figure' ,autolayout='True')
@@ -100,18 +102,22 @@ dest = "woa_dir")
         start = datetime.datetime.strptime(options.start,'%Y-%m-%d')
     except AttributeError:
         print 'Error with option start'
+        log.info('Error with option start')
     try:
         end = datetime.datetime.strptime(options.end,'%Y-%m-%d')
     except AttributeError:
         print 'Error with option end'
+        log.info('Error with option end')
     try:
         catds_dir = options.catds_dir 
     except AttributeError:
         print 'Error with option catds_dir'
+        log.info('Error with option catds_dir')
     try:
         woa_dir = options.woa_dir 
     except AttributeError:
         print 'Error with option woa_dir'
+        log.info('Error with option woa_dir')
       
 
     date = start
@@ -160,16 +166,12 @@ dest = "woa_dir")
             isas_fig = 'ISAS_{}'.format(date.strftime('%Y%m'))
             fig_file = isas_fig + '.png'
 
-            #createMap(title, isas_file, fig_file, 12, 32, 38, isas_lon,
-            #         isas_lat, isas_sss, 'jet')
+            createMap(title, isas_file, fig_file, 12, 32, 38, isas_lon,
+                     isas_lat, isas_sss, 'jet')
 
         # Generate WOA maps
-        woa_exists = False
-
         #woa_dir = '/home/coriolis_dev/val/dat/co03/climatologie/WOA13/'
-        # FOR TESTING
-        #woa_dir = 'woa/'
-
+        woa_exists = False
         woa_file = 's{:02d}_04.nc'.format(date.month)
 
         if os.path.exists(woa_dir + woa_file):
@@ -183,7 +185,6 @@ dest = "woa_dir")
                 woa_lat = woa_nc.variables['lat'][:]
                 woa_lon = woa_nc.variables['lon'][:]
                 woa_sss = woa_nc.variables['s_an'][0,0,:,:]
-                woa_nc.close()
                 #logging.debug(woa_file + ' .... loaded !')
             except RuntimeError:
                 continue
@@ -200,8 +201,8 @@ dest = "woa_dir")
             woa_fig = 'WOA2013_{}'.format(date.strftime('%m'))
             fig_file = woa_fig + '.png'
 
-            #createMap(title, woa_file, fig_file, 11, 32, 38, woa_lon,
-            #           woa_lat, woa_sss, 'jet')
+            createMap(title, woa_file, fig_file, 11, 32, 38, woa_lon,
+                       woa_lat, woa_sss, 'jet')
 
         else:
             logging.error('woa dir and file {} does not exist !'.format(woa_dir + woa_file))
@@ -234,8 +235,8 @@ dest = "woa_dir")
             title = isas_title + ' - ' + woa_title
             fig_file = isas_fig + '-' + woa_fig + '.png'
 
-            #createMap(title, woa_file, fig_file, 10, -0.5, +0.5, woa_lon,
-            #           woa_lat, isas_woa_sss, 'RdBu_r')
+            createMap(title, woa_file, fig_file, 10, -0.5, +0.5, woa_lon,
+                       woa_lat, isas_woa_sss, 'RdBu_r')
 
         # flags for A-D
         resetA, resetD = 0, 0
@@ -251,7 +252,7 @@ dest = "woa_dir")
             smosCATDS_dir = catds_dir + 'MIR_CSF3B{}/{:04d}/{:02d}/'.format('_'if orbit=='AD' else orbit,
                 date0.year,
                 date0.month,) 
-            # there's only 2015 and 2016
+            # currently only 2015 and 2016
             smosCATDS_file = 'SM_OPER_MIR_CSF3B{}_{}_{}_*_*_7.tgz'.format('_' if orbit=='AD' else orbit,
                 date0.strftime('%Y%m%dT%H%M%S'),
                 date1.strftime('%Y%m%dT%H%M%S'),)
@@ -261,8 +262,6 @@ dest = "woa_dir")
             smosCATDS_files = glob.glob(smosCATDS_dir + smosCATDS_file)
             if len(smosCATDS_files)>0:
                 smosCATDS_file = os.path.basename(smosCATDS_files[-1])
-            print "smosCATDS_dir : " + smosCATDS_dir
-            print "smosCATDS_file : " + smosCATDS_file
             if os.path.exists(smosCATDS_dir + smosCATDS_file):
                 smosCATDS_exists = True
 
@@ -324,8 +323,8 @@ dest = "woa_dir")
                 smosCATDS_fig = 'N_SMOS_CATDS_{}_{}'.format(orbit,date.strftime('%Y%m'))
                 fig_file = smosCATDS_fig + '.png'
 
-                #createMap(title, smosCATDS_file, fig_file, 15, 0, 75, smosCATDS_lon,
-                #            smosCATDS_lat, smosCATDS_n, 'jet', 'Number of Used Measures')
+                createMap(title, smosCATDS_file, fig_file, 15, 0, 75, smosCATDS_lon,
+                            smosCATDS_lat, smosCATDS_n, 'jet', 'Number of Used Measures')
 
                 # SMOS CATDS
                 smosCATDS_title = 'SMOS CATDS-CPDC [{},{}]'.format(orbit,date.strftime('%Y-%m'))
@@ -333,8 +332,8 @@ dest = "woa_dir")
                 smosCATDS_fig = 'SMOS_CATDS_{}_{}'.format(orbit,date.strftime('%Y%m'))
                 fig_file = smosCATDS_fig + '.png'
 
-                #createMap(title, smosCATDS_file, fig_file, 12, 32, 38, smosCATDS_lon,
-                #            smosCATDS_lat, smosCATDS_sss, 'jet')
+                createMap(title, smosCATDS_file, fig_file, 12, 32, 38, smosCATDS_lon,
+                            smosCATDS_lat, smosCATDS_sss, 'jet')
 
                 # STD/sqrt(N) (Sss_Standard_Deviation in NetCDF file)
                 smosCATDSerr_title = 'Std/sqrt(N)' + ' SMOS CATDS_CPDC [{},{}]'.format(orbit,date.strftime('%Y-%m'))
@@ -342,8 +341,8 @@ dest = "woa_dir")
                 smosCATDSerr_fig = 'ERR_SMOS_CATDS_{}_{}'.format(orbit,date.strftime('%Y%m'))
                 fig_file = smosCATDSerr_fig + '.png'
 
-                #createMap(title, smosCATDS_file, fig_file, 12, 0, +0.6, smosCATDS_lon,
-                #            smosCATDS_lat, smosCATDS_err, 'jet', 'Std(SSS)/sqrt(N) [PSS]')
+                createMap(title, smosCATDS_file, fig_file, 12, 0, +0.6, smosCATDS_lon,
+                            smosCATDS_lat, smosCATDS_err, 'jet', 'Std(SSS)/sqrt(N) [PSS]')
 
                 # STD (Sss_Rms_Mean in NetCDF file)
                 smosCATDSstd_title = 'Std SMOS CATDS_CPDC [{},{}]'.format(orbit,date.strftime('%Y-%m'))
@@ -351,8 +350,8 @@ dest = "woa_dir")
                 smosCATDSstd_fig = 'STD_SMOS_CATDS_{}_{}'.format(orbit,date.strftime('%Y%m'))
                 fig_file = smosCATDSstd_fig + '.png'
 
-                #createMap(title, smosCATDS_file, fig_file, 10, 0, +2, smosCATDS_lon,
-                #            smosCATDS_lat, smosCATDS_std, 'jet', 'Std(SSS) [PSS]')
+                createMap(title, smosCATDS_file, fig_file, 10, 0, +2, smosCATDS_lon,
+                            smosCATDS_lat, smosCATDS_std, 'jet', 'Std(SSS) [PSS]')
 
 	        # generate A-D map if we've got both A and D
                 # A-D
@@ -374,16 +373,11 @@ dest = "woa_dir")
 		    smosd_lon, smosd_lat = None, None
 		    resetA, resetD = 0, 0
                 
-                print "resetA : {}".format(resetA)
-                print "resetD : {}".format(resetD)
-
 	        if resetA==1 and resetD==1 and smosa_path and smosd_path:
 
                     #smosad_lonout,z =map.shiftdata(smosd_lon, smosa_sss - smosd_sss, lon_0=-50)
                     #lon,lat = np.meshgrid(smosad_lonout,smosd_lat)
 		    sss_diff = smosa_sss - smosd_sss
-		    print 'smosa_sss : {}'.format(smosa_sss)
-		    print 'smosd_sss : {}'.format(smosd_sss)
 		    smosad_file = smosa_file + ' + ' + smosd_file
 
                     smosad_title = 'SMOS CATDS_CPDC [A-D,{}]'.format(date.strftime('%Y-%m'))
@@ -419,8 +413,8 @@ dest = "woa_dir")
                     title = smosCATDS_title + ' - ' + isas_title
                     fig_file = smosCATDS_fig + '-' + isas_fig + '.png'
 
-                    #createMap(title, smosCATDS_file, fig_file, 10, -0.5, +0.5, smosCATDS_lon,
-                    #           smosCATDS_lat, isas_catds_sss, 'RdBu_r')
+                    createMap(title, smosCATDS_file, fig_file, 10, -0.5, +0.5, smosCATDS_lon,
+                               smosCATDS_lat, isas_catds_sss, 'RdBu_r')
 
                 # CATDS - WOA comparison map
                 if woa_exists:
@@ -447,8 +441,8 @@ dest = "woa_dir")
                     title = smosCATDS_title + ' - ' + woa_title
                     fig_file = smosCATDS_fig + '-' + woa_fig + '.png'
 
-                    #createMap(title, smosCATDS_file, fig_file, 10, -0.5, +0.5, smosCATDS_lon,
-                    #           smosCATDS_lat, woa_catds_sss, 'RdBu_r')
+                    createMap(title, smosCATDS_file, fig_file, 10, -0.5, +0.5, smosCATDS_lon,
+                               smosCATDS_lat, woa_catds_sss, 'RdBu_r')
 
         # Increment to next date to process
         date = datetime.datetime( date.year + date.month/12, (date.month+1-1)%12+1, 1,0,0,0,0,None)
