@@ -6,9 +6,20 @@
     carte_comp.py
     Generates CATDS, ISAS, WOA maps and the comparisons between them.
 
-    2016-10-16 LM Initial
+    Source directories:
+    ISAS OA  /home/oo22/oo/co05/co0520/co052004/CORA-GLOBAL-04.1/OA/field/
+         NRT /home/coriolis_exp/spool/co04/co0401/ISAS_6_2/NRTOAGL01/ISAS_RESU/field/
 
+    WOA  /home/coriolis_dev/val/dat/co03/climatologie/WOA13/
+
+    CATDS OPER /home/catds_diss/data/cpdc/exp/current/FTP/OS/GRIDDED/L3OS/OPER/
+          RE04 /home/catds_diss/data/cpdc/exp/current/FTP/OS/GRIDDED/L3OS/RE04/MIR_CSF3BA
+
+    TODO: put directories in and read from config file
+
+    2016-10-16 LM Initial
     2016-11-15 LM WOA and CATDS directories as parameters
+    2016-11-28 LM generate RE04 maps (date < 2015-05)
 
 '''
 
@@ -92,32 +103,49 @@ if __name__ == '__main__':
     parser = OptionParser()
     parser.add_option("-s", "--start", action = "store", type = "string", dest = "start", default = '2010-01-01')
     parser.add_option("-e", "--end", action = "store", type = "string", dest = "end", default = datetime.datetime.now().strftime('%Y-%m-01'))
-    parser.add_option("-c", "--catds_dir", action = "store", type = "string", dest = "catds_dir")
-    parser.add_option("-w", "--woa_dir", action = "store", type = "string",
-dest = "woa_dir")
+    parser.add_option("-c", "--catds_oper_dir", action = "store", type = "string", dest = "catds_oper_dir")
+    parser.add_option("-r", "--catds_re04_dir", action = "store", type = "string", dest = "catds_re04_dir")
+    parser.add_option("-w", "--woa_dir", action = "store", type = "string", dest = "woa_dir")
+    parser.add_option("-o", "--isas_oa_dir", action = "store", type = "string", dest = "isas_oa_dir")
+    parser.add_option("-n", "--isas_nrt_dir", action = "store", type = "string", dest = "isas_nrt_dir")
     (options, args) = parser.parse_args()
 
     # define dates to process
     try:
         start = datetime.datetime.strptime(options.start,'%Y-%m-%d')
     except AttributeError:
-        print 'Error with option start'
+        #print 'Error with option start'
         log.info('Error with option start')
     try:
         end = datetime.datetime.strptime(options.end,'%Y-%m-%d')
     except AttributeError:
-        print 'Error with option end'
+        #print 'Error with option end'
         log.info('Error with option end')
     try:
-        catds_dir = options.catds_dir 
+        catds_oper_dir = options.catds_oper_dir 
     except AttributeError:
-        print 'Error with option catds_dir'
-        log.info('Error with option catds_dir')
+        #print 'Error with option catds_oper_dir'
+        log.info('Error with option catds_oper_dir')
+    try:
+        catds_re04_dir = options.catds_re04_dir 
+    except AttributeError:
+        #print 'Error with option catds_re04_dir'
+        log.info('Error with option catds_re04_dir')
     try:
         woa_dir = options.woa_dir 
     except AttributeError:
-        print 'Error with option woa_dir'
+        #print 'Error with option woa_dir'
         log.info('Error with option woa_dir')
+    try:
+        isas_oa_dir = options.isas_oa_dir 
+    except AttributeError:
+        #print 'Error with option isas_oa_dir'
+        log.info('Error with option isas_oa_dir')
+    try:
+        isas_nrt_dir = options.isas_nrt_dir 
+    except AttributeError:
+        #print 'Error with option isas_nrt_dir'
+        log.info('Error with option isas_nrt_dir')
       
 
     date = start
@@ -127,10 +155,8 @@ dest = "woa_dir")
         # Generate ISAS maps
         isas_exists = False
 
-        isas_dir  = '/home/oo22/oo/co05/co0520/co052004/CORA-GLOBAL-04.1/OA/field/%04d/' % (date.year )
+        isas_dir  = '/home/oo22/oo/co05/co0520/co052004/CORA-GLOBAL-04.1/OA/field/%04d/' % ( date.year )
         isas_file = 'OA_CORA4.1_{}15_fld_PSAL.nc'.format(date.strftime('%Y%m'))
-
-        logging.debug('Reprocessed isas path {} ...'.format(isas_dir + isas_file))
 
         if not(os.path.exists(isas_dir + isas_file)):
             logging.debug('isas_file does not exist...')
@@ -170,7 +196,6 @@ dest = "woa_dir")
                      isas_lat, isas_sss, 'jet')
 
         # Generate WOA maps
-        #woa_dir = '/home/coriolis_dev/val/dat/co03/climatologie/WOA13/'
         woa_exists = False
         woa_file = 's{:02d}_04.nc'.format(date.month)
 
@@ -185,7 +210,6 @@ dest = "woa_dir")
                 woa_lat = woa_nc.variables['lat'][:]
                 woa_lon = woa_nc.variables['lon'][:]
                 woa_sss = woa_nc.variables['s_an'][0,0,:,:]
-                #logging.debug(woa_file + ' .... loaded !')
             except RuntimeError:
                 continue
 
@@ -242,21 +266,35 @@ dest = "woa_dir")
         resetA, resetD = 0, 0
 
         # Generate CATDS maps
+        # date => 2016-05 uses OPER
+        # date < 2016-05 uses RE04
         for orbit in ('A','D','AD',):
 
+            smosCATDS_exists = False
             date0 = date
             date1 = (date0+datetime.timedelta(days=45)).replace(day=1)-datetime.timedelta(seconds=1)
-            smosCATDS_exists = False
 
-            #smosCATDS_dir = '/home/catds_diss/data/cpdc/exp/current/FTP/OS/GRIDDED/L3OS/OPER/MIR_CSF3B{}/{:04d}/{:02d}/'.format('_'if orbit=='AD' else orbit,
+            # OPER or RE04
+            yr  = date.year
+            mth = date.month
+            if (yr<2015 or (yr==2015 and mth<5)):
+                catds_dir  = catds_re04_dir
+                logging.debug('CATDS dir: ' + catds_dir)
+                catds_type = 'RE04'
+            else:
+                catds_dir = catds_oper_dir
+                logging.debug('CATDS dir: ' + catds_dir)
+                catds_type = 'OPER'
+
+
             smosCATDS_dir = catds_dir + 'MIR_CSF3B{}/{:04d}/{:02d}/'.format('_'if orbit=='AD' else orbit,
                 date0.year,
                 date0.month,) 
             # currently only 2015 and 2016
-            smosCATDS_file = 'SM_OPER_MIR_CSF3B{}_{}_{}_*_*_7.tgz'.format('_' if orbit=='AD' else orbit,
+            #smosCATDS_file = 'SM_OPER_MIR_CSF3B{}_{}_{}_*_*_7.tgz'.format('_' if orbit=='AD' else orbit,
+            smosCATDS_file = 'SM_{}_MIR_CSF3B{}_{}_{}_*_*_7.tgz'.format(catds_type, '_' if orbit=='AD' else orbit,
                 date0.strftime('%Y%m%dT%H%M%S'),
                 date1.strftime('%Y%m%dT%H%M%S'),)
-            logging.debug('CATDS dir ' + smosCATDS_dir)
             logging.debug('Processing file ' + smosCATDS_file)
 
             smosCATDS_files = glob.glob(smosCATDS_dir + smosCATDS_file)
@@ -318,7 +356,7 @@ dest = "woa_dir")
 
 
                 # N SMOS CATDS
-                smosCATDS_title = 'N SMOS CATDS_CPDC [{},{}]'.format(orbit,date.strftime('%Y-%m'))
+                smosCATDS_title = 'N SMOS CATDS_CPDC {} [{},{}]'.format(catds_type, orbit, orbit ,date.strftime('%Y-%m'))
                 title = smosCATDS_title
                 smosCATDS_fig = 'N_SMOS_CATDS_{}_{}'.format(orbit,date.strftime('%Y%m'))
                 fig_file = smosCATDS_fig + '.png'
@@ -327,7 +365,7 @@ dest = "woa_dir")
                             smosCATDS_lat, smosCATDS_n, 'jet', 'Number of Used Measures')
 
                 # SMOS CATDS
-                smosCATDS_title = 'SMOS CATDS-CPDC [{},{}]'.format(orbit,date.strftime('%Y-%m'))
+                smosCATDS_title = 'SMOS CATDS-CPDC {} [{},{}]'.format(catds_type, orbit ,date.strftime('%Y-%m'))
                 title = smosCATDS_title
                 smosCATDS_fig = 'SMOS_CATDS_{}_{}'.format(orbit,date.strftime('%Y%m'))
                 fig_file = smosCATDS_fig + '.png'
@@ -336,7 +374,7 @@ dest = "woa_dir")
                             smosCATDS_lat, smosCATDS_sss, 'jet')
 
                 # STD/sqrt(N) (Sss_Standard_Deviation in NetCDF file)
-                smosCATDSerr_title = 'Std/sqrt(N)' + ' SMOS CATDS_CPDC [{},{}]'.format(orbit,date.strftime('%Y-%m'))
+                smosCATDSerr_title = 'Std/sqrt(N)' + ' SMOS CATDS_CPDC {} [{},{}]'.format(catds_type, orbit ,date.strftime('%Y-%m'))
                 title = smosCATDSerr_title
                 smosCATDSerr_fig = 'ERR_SMOS_CATDS_{}_{}'.format(orbit,date.strftime('%Y%m'))
                 fig_file = smosCATDSerr_fig + '.png'
@@ -345,7 +383,7 @@ dest = "woa_dir")
                             smosCATDS_lat, smosCATDS_err, 'jet', 'Std(SSS)/sqrt(N) [PSS]')
 
                 # STD (Sss_Rms_Mean in NetCDF file)
-                smosCATDSstd_title = 'Std SMOS CATDS_CPDC [{},{}]'.format(orbit,date.strftime('%Y-%m'))
+                smosCATDSstd_title = 'Std SMOS CATDS_CPDC {} [{},{}]'.format(catds_type, orbit ,date.strftime('%Y-%m'))
                 title = smosCATDSstd_title
                 smosCATDSstd_fig = 'STD_SMOS_CATDS_{}_{}'.format(orbit,date.strftime('%Y%m'))
                 fig_file = smosCATDSstd_fig + '.png'
@@ -375,18 +413,16 @@ dest = "woa_dir")
                 
 	        if resetA==1 and resetD==1 and smosa_path and smosd_path:
 
-                    #smosad_lonout,z =map.shiftdata(smosd_lon, smosa_sss - smosd_sss, lon_0=-50)
-                    #lon,lat = np.meshgrid(smosad_lonout,smosd_lat)
 		    sss_diff = smosa_sss - smosd_sss
 		    smosad_file = smosa_file + ' + ' + smosd_file
 
-                    smosad_title = 'SMOS CATDS_CPDC [A-D,{}]'.format(date.strftime('%Y-%m'))
+                    smosad_title = 'SMOS CATDS_CPDC {} [A-D,{}]'.format(catds_type, date.strftime('%Y-%m'))
                     title = smosad_title
                     smosad_fig = 'SMOS_CATDS_AmD_{}'.format(date.strftime('%Y%m'))
                     fig_file = smosad_fig + '.png'
 
 	            createMap(title, smosad_file, fig_file, 10, -0.5, +0.5, smosd_lon, smosd_lat,
-		        sss_diff, 'RdBu_r', 'delta SSS [PSS]')
+		       sss_diff, 'RdBu_r', 'delta SSS [PSS]')
 
                 # CATDS - ISAS comparison map
                 if isas_exists:
